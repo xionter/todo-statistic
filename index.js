@@ -23,6 +23,16 @@ function parseComments() {
             }
         }
     }
+    return comments;
+}
+function getImportantTodos() {
+    let important = []
+    for(const todo of todos) {
+        if(todo.includes('!')) {
+            important.push(todo);
+        }
+    }
+    return important;
 }
 function processCommand(command) {
     switch (command) {
@@ -31,6 +41,10 @@ function processCommand(command) {
             break;
         case 'show':
             console.log(todos);
+            break;
+        case 'important':
+            const important = getImportantTodos();
+            console.log(important);
             break;
         default:
             console.log('wrong command');
