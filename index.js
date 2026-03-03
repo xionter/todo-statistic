@@ -25,6 +25,7 @@ function parseComments() {
     }
     return comments;
 }
+
 function getImportantTodos() {
     let important = []
     for(const todo of todos) {
@@ -34,7 +35,6 @@ function getImportantTodos() {
     }
     return important;
 }
-
 
 function getUserTodos(param) {
     let userTodos = [];
@@ -49,7 +49,32 @@ function getUserTodos(param) {
     return userTodos;
 }
 
+function getTodosAfterData(dateInput) {
+    let todosAfter = [];
+    const timestamp = new normalizeDate(dateInput);
+    for(const todo of todos) {
+        const parts = todo.split(';');
+        if(parts.length < 2) {
+            continue;
+        }
 
+        const todoDate = new Date(parts[1].trim());
+        if(!isNaN(todoDate) && todoDate > timestamp) {
+            todosAfter.push(todo);
+        }
+    }
+    return todosAfter;
+}
+
+function normalizeDate(input) {
+    const parts = input.split('-');
+
+    const year = parts[0];
+    const month = parts[1] || '01';
+    const day = parts[2] || '01';
+
+    return new Date(`${year}-${month}-${day}`);
+}
 function processCommand(command) {
     const split = command.split(' ');
     const instr = split[0];
@@ -62,13 +87,14 @@ function processCommand(command) {
             console.log(todos);
             break;
         case 'important':
-            const important = getImportantTodos();
-            console.log(important);
+            console.log(getImportantTodos());
             break;
         case 'user':
             const users = getUserTodos(param);
             console.log(`${param} : ${users}`)
             break;
+        case 'date':
+            console.log(getTodosAfterData(param));
         default:
             console.log('wrong command');
             break;
