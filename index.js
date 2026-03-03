@@ -12,12 +12,19 @@ function getFiles() {
 }
 
 function parseComments() {
-    let comments = []
+    const comments = [];
     for (const content of files) {
-        while (
-        let idx = content.indexOf('// TODO ')
-        console.log(content);
+        const lines = content.split('\n');
+        for (const line of lines) {
+            const idx = line.indexOf('// TODO ');
+            if (idx !== -1) {
+                const text = line.substring(idx + '// TODO '.length);
+                comments.push(text.trim());
+            }
+        }
     }
+
+    console.log(comments);
 }
 function processCommand(command) {
     switch (command) {
