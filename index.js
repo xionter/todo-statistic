@@ -35,7 +35,10 @@ function getImportantTodos() {
     return important;
 }
 function processCommand(command) {
-    switch (command) {
+    const split = command.split(' ');
+    const instr = split[0];
+    const param = split[1];
+    switch (instr) {
         case 'exit':
             process.exit(0);
             break;
@@ -45,6 +48,9 @@ function processCommand(command) {
         case 'important':
             const important = getImportantTodos();
             console.log(important);
+            break;
+        case 'user':
+            console.log(param);
             break;
         default:
             console.log('wrong command');
