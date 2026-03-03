@@ -1,71 +1,67 @@
-const {getAllFilePathsWithExtension, readFile} = require('./fileSystem');
-const {readLine} = require('./console');
+const { getAllFilePathsWithExtension, readFile } = require('./fileSystem');
+const { readLine } = require('./console');
 const path = require('path');
-
-const getFiles = () => getAllFilePathsWithExtension(process.cwd(), 'js');
 
 console.log('Please, write your command!');
 readLine(processCommand);
 
-const filePaths = getFiles();
+const filePaths = getAllFilePathsWithExtension(process.cwd(), 'js');
 const todos = parseComments();
 
+
 function parseComments() {
-    const comments = [];
+    const result = [];
+
+    const regex = /\/\/\s*TODO\s+(.*)/;
+
     for (const filePath of filePaths) {
         const content = readFile(filePath);
         const fileName = path.basename(filePath);
         const lines = content.split('\n');
+
         for (const line of lines) {
-            const idx = line.indexOf('// TODO ');
-            if (idx !== -1) {
-                const text = line.substring(idx + ('// TODO ').length).trim();
-                comments.push(`${text}; ${fileName}`);
+            const match = line.match(regex);
+            if (!match) continue;
+
+            const body = match[1].trim();
+            const parts = body.split(';').map(p => p.trim());
+
+            let user = null;
+            let date = null;
+            let text = body;
+
+            if (parts.length >= 3) {
+                user = parts[0] || null;
+                date = parts[1] ? new Date(parts[1]) : null;
+                text = parts.slice(2).join(';').trim();
             }
+
+            if (date && isNaN(date)) {
+                date = null;
+            }
+            result.push({ user, date, text, file: fileName});
         }
     }
-    return comments;
+    return result;
 }
-
 
 function getImportantTodos() {
-    let important = []
-    for(const todo of todos) {
-        if(todo.includes('!')) {
-            important.push(todo);
-        }
-    }
-    return important;
+    return todos.filter(t => t.text.includes('!'));
 }
 
-function getUserTodos(param) {
-    let userTodos = [];
-    for(const todo of todos) {
-        const parts = todo.split(';');
-        const username = parts[0].trim();
-        if(username.toLowerCase() === param.toLowerCase()) {
-            userTodos.push(todo);
-        }
-    }
-
-    return userTodos;
+function getUserTodos(username) {
+    return todos.filter(t =>
+        t.user &&
+        t.user.toLowerCase() === username.toLowerCase()
+    );
 }
 
-function getTodosAfterData(dateInput) {
-    let todosAfter = [];
-    const timestamp = normalizeDate(dateInput);
-    for(const todo of todos) {
-        const parts = todo.split(';');
-        if(parts.length < 2) {
-            continue;
-        }
+function getTodosAfterDate(input) {
+    const timestamp = normalizeDate(input);
 
-        const todoDate = new Date(parts[1].trim());
-        if(!isNaN(todoDate) && todoDate > timestamp) {
-            todosAfter.push(todo);
-        }
-    }
-    return todosAfter;
+    return todos.filter(t =>
+        t.date && t.date > timestamp
+    );
 }
 
 function normalizeDate(input) {
@@ -77,43 +73,91 @@ function normalizeDate(input) {
     return new Date(`${year}-${month}-${day}`);
 }
 
+function countExclamations(str) {
+    return [...str].filter(ch => ch === '!').length;
+}
+
+function sortByImportance() {
+    return [...todos].sort((a, b) =>
+        countExclamations(b.text) - countExclamations(a.text)
+    );
+}
+
+function sortByUser() {
+    return [...todos].sort((a, b) => {
+        if (!a.user && !b.user) return 0;
+        if (!a.user) return 1;
+        if (!b.user) return -1;
+
+        return a.user.localeCompare(b.user);
+    });
+}
+
+function sortByDate() {
+    return [...todos].sort((a, b) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return b.date - a.date;
+    });
+}
+
 function processCommand(command) {
-    const split = command.split(' ');
-    const instr = split[0];
-    const param = split[1];
+    const [instr, param] = command.split(' ');
+
     switch (instr) {
         case 'exit':
             process.exit(0);
             break;
+
         case 'show':
             tableLog(todos);
             break;
+
         case 'important':
             tableLog(getImportantTodos());
             break;
+
         case 'user':
-            const users = getUserTodos(param);
-            tableLog(`${param} : ${users}`)
+            tableLog(getUserTodos(param));
             break;
+
         case 'date':
-            tableLog(getTodosAfterData(param));
+            tableLog(getTodosAfterDate(param));
+            break;
+
+        case 'sort':
+            if (param === 'importance') tableLog(sortByImportance());
+            else if (param === 'user') tableLog(sortByUser());
+            else if (param === 'date') tableLog(sortByDate());
+            else console.log('wrong sort parameter');
+            break;
+
         default:
             console.log('wrong command');
-            break;
     }
 }
 
 function tableLog(data) {
+    if (!data.length) {
+        console.log('No data');
+        return;
+    }
 
-    const rows = data.map(row => row.split(';'));
+    const rows = data.map(t => [
+        t.user || '',
+        t.date ? t.date.toISOString().slice(0, 10) : '',
+        t.text,
+        t.file
+    ]);
 
-    const maxLimits = [1, 10, 10, 50];
+    const maxLimits = [12, 12, 40, 20];
     const widths = getColumnWidths(rows, maxLimits);
+
     for (const row of rows) {
-        const formatted = row.map((cell, i) => {
-            const trimmed = cell.slice(0, widths[i]);
-            return trimmed.padEnd(widths[i], ' ');
-        });
+        const formatted = row.map((cell, i) =>
+            (cell || '').slice(0, widths[i]).padEnd(widths[i])
+        );
 
         console.log(formatted.join('  |  '));
     }
@@ -122,14 +166,12 @@ function tableLog(data) {
 function getColumnWidths(rows, maxLimits) {
     const widths = [];
 
-    for (let col = 0; col < rows[0].length; ++col) {
+    for (let col = 0; col < rows[0].length; col++) {
         let maxWidth = 0;
         for (const row of rows) {
-            const cell = row[col] || '';
-            maxWidth = Math.max(maxWidth, cell.length);
+            maxWidth = Math.max(maxWidth, (row[col] || '').length);
         }
         widths[col] = Math.min(maxWidth, maxLimits[col]);
     }
     return widths;
 }
-// TODO you can do it!
