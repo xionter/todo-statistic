@@ -11,10 +11,21 @@ function getFiles() {
     return filePaths.map(path => readFile(path));
 }
 
+function parseComments() {
+    let comments = []
+    for (const content of files) {
+        while (
+        let idx = content.indexOf('// TODO ')
+        console.log(content);
+    }
+}
 function processCommand(command) {
     switch (command) {
         case 'exit':
             process.exit(0);
+            break;
+        case 'parse comments':
+            parseComments();
             break;
         default:
             console.log('wrong command');
