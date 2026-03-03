@@ -2,7 +2,7 @@ const {getAllFilePathsWithExtension, readFile} = require('./fileSystem');
 const {readLine} = require('./console');
 
 const files = getFiles();
-
+const todos = parseComments();
 console.log('Please, write your command!');
 readLine(processCommand);
 
@@ -23,16 +23,14 @@ function parseComments() {
             }
         }
     }
-
-    console.log(comments);
 }
 function processCommand(command) {
     switch (command) {
         case 'exit':
             process.exit(0);
             break;
-        case 'parse comments':
-            parseComments();
+        case 'show':
+            console.log(todos);
             break;
         default:
             console.log('wrong command');
