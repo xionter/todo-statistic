@@ -34,6 +34,22 @@ function getImportantTodos() {
     }
     return important;
 }
+
+
+function getUserTodos(param) {
+    let userTodos = [];
+    for(const todo of todos) {
+        const parts = todo.split(';');
+        const username = parts[0].trim();
+        if(username.toLowerCase() === param.toLowerCase()) {
+            userTodos.push(todo);
+        }
+    }
+
+    return userTodos;
+}
+
+
 function processCommand(command) {
     const split = command.split(' ');
     const instr = split[0];
@@ -50,7 +66,8 @@ function processCommand(command) {
             console.log(important);
             break;
         case 'user':
-            console.log(param);
+            const users = getUserTodos(param);
+            console.log(`${param} : ${users}`)
             break;
         default:
             console.log('wrong command');
